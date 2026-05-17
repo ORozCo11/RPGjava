@@ -141,7 +141,22 @@ enemies = createWave(currentWave);
                     }
                 } else gui.setMessage("No items left!");
             }
-            case "flee" -> gui.setMessage(currentChar.getName() + " tried to flee!");
+           case "flee" -> {
+    // 50% chance to successfully escape
+    if (Math.random() < 0.5) {
+        gui.setMessage(currentChar.getName() + " managed to escape the battle safely!");
+        
+        // Show a quick confirmation dialog before closing the app
+        JOptionPane.showMessageDialog(gui, "You fled from battle! Returning to safety...", "Escaped", JOptionPane.INFORMATION_MESSAGE);
+        
+        // Closes the window and ends the program safely
+        gui.dispose(); 
+        System.exit(0); 
+        return; // Break out early so nextCharacterTurn() isn't called!
+    } else {
+        gui.setMessage(currentChar.getName() + " tried to flee but couldn't get away!");
+    }
+}
         }
 
         nextCharacterTurn();
