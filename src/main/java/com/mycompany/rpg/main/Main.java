@@ -4,7 +4,6 @@ import com.mycompany.rpg.characters.Character;
 import com.mycompany.rpg.characters.Warrior;
 import com.mycompany.rpg.characters.Mage;
 import com.mycompany.rpg.characters.Archer;
-
 import com.mycompany.rpg.enemies.*;
 import com.mycompany.rpg.items.*;
 import com.mycompany.rpg.ui.BattleGUI;
@@ -13,6 +12,7 @@ import com.mycompany.rpg.utils.Shop;
 
 import javax.swing.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class Main {
 
@@ -26,57 +26,75 @@ public class Main {
 
     public static void main(String[] args) {
 
-        // ===== Initialize party =====
-        party = new Character[]{
-                new Warrior("Thor"),
-                new Mage("Merlin"),
-                new Archer("Legolas")
-        };
+       // ===== All possible characters =====
+Character[] allCharacters = {
+    new Warrior("Thor", 100, 50, 20, 10),
+    new Mage("Merlin", 80, 60, 30, 5),
+    new Archer("Legolas", 90, 55, 20, 8),
+    new Warrior("Freya", 110, 45, 25, 12)
+};
+// ===== Select 2 characters for party =====
+int choice1 = JOptionPane.showOptionDialog(
+        null,
+        "Select your first character",
+        "Character Selection",
+        JOptionPane.DEFAULT_OPTION,
+        JOptionPane.INFORMATION_MESSAGE,
+        null,
+        Arrays.stream(allCharacters).map(Character::getName).toArray(),
+        allCharacters[0].getName()
+);
 
+
+        int choice2 = JOptionPane.showOptionDialog(
+        null,
+        "Select your second character",
+        "Character Selection",
+        JOptionPane.DEFAULT_OPTION,
+        JOptionPane.INFORMATION_MESSAGE,
+        null,
+        Arrays.stream(allCharacters).map(Character::getName).toArray(),
+        allCharacters[1].getName()
+);
+
+        party = new Character[]{ allCharacters[choice1], allCharacters[choice2] };
+        
+        
         // ===== Initialize inventory =====
         inventory = new ArrayList<>();
         inventory.add(new Item("Health Potion", "Restores 30 HP", 30));
         inventory.add(new Item("Mana Elixir", "Restores 20 MP", 20));
         inventory.add(new Item("Revive Scroll", "Revives a fallen ally", 50));
 
-        // ===== Initialize first wave =====
-        currentWave = 0;
-        enemies = createWave(currentWave);
+       // ===== Create first wave =====
+currentWave = 0;
+enemies = createWave(currentWave);
 
         // ===== Initialize GUI =====
-        gui = new BattleGUI(
-                party[0].getName(),
-                party[0].getHp(),
-                enemies[0].getName(),
-                enemies[0].getHp()
-        );
-        gui.setMessage("Wave 1 begins! " + party[0].getName() + "'s turn");
+        gui = new BattleGUI(party, enemies);
+        gui.setMessage("Wave " + (currentWave+1) + " begins! " + party[0].getName() + "'s turn");
 
-        // ===== Button listeners =====
         gui.onAttack(e -> handleAction("attack"));
         gui.onSkill(e -> handleAction("skill"));
         gui.onItem(e -> handleAction("item"));
         gui.onFlee(e -> handleAction("flee"));
     }
 
+    // =========================================================
     private static void handleAction(String actionType) {
         Character currentChar = party[currentCharacterIndex];
 
-        // ===== Check poison status at start of turn =====
+        // Poison damage at start of turn
         if (currentChar.isPoisoned()) {
-            int poisonDmg = 5;
-            currentChar.takeDamage(poisonDmg);
-            gui.setPlayerHp(currentChar.getHp());
-            gui.setMessage(currentChar.getName() + " takes " + poisonDmg + " poison damage!");
-
-            currentChar.setPoisoned(true, currentChar.getPoisonTurns() - 1);
-            if (currentChar.getPoisonTurns() <= 0) {
-                currentChar.setPoisoned(false, 0);
-                gui.setMessage(currentChar.getName() + " is no longer poisoned.");
-            }
+            int dmg = 5;
+            currentChar.takeDamage(dmg);
+            gui.updatePartyBars();
+            gui.setMessage(currentChar.getName() + " takes " + dmg + " poison damage!");
+            currentChar.setPoisoned(currentChar.getPoisonTurns() - 1 > 0, currentChar.getPoisonTurns()-1);
+            if (!currentChar.isPoisoned()) gui.setMessage(currentChar.getName() + " is no longer poisoned.");
         }
 
-        // ===== Check stun status =====
+        // Skip turn if stunned
         if (currentChar.isStunned()) {
             gui.setMessage(currentChar.getName() + " is stunned and skips the turn!");
             currentChar.setStunned(false);
@@ -84,135 +102,112 @@ public class Main {
             return;
         }
 
-        // ===== Player action =====
-        Enemy target = chooseEnemy(enemies);
+        // Choose target
+        Enemy target = chooseEnemy();
         if (target == null) {
             gui.setMessage("No enemies left!");
             return;
         }
 
+        // Player action
         switch (actionType) {
-            case "attack":
+            case "attack" -> {
                 int dmg = currentChar.attack();
                 target.takeDamage(dmg);
-                gui.setEnemyHp(target.getHp());
+                gui.updateEnemyBars();
                 gui.setMessage(currentChar.getName() + " attacks " + target.getName() + " for " + dmg + " damage!");
-                break;
+            }
+            case "skill" -> {
+                int dmg = currentChar.useSkill();
+                target.takeDamage(dmg);
+                gui.updateEnemyBars();
+                gui.setMessage(currentChar.getName() + " uses skill on " + target.getName() + " for " + dmg + " damage!");
 
-            case "skill":
-                int skillDmg = currentChar.useSkill();
-                target.takeDamage(skillDmg);
-                gui.setEnemyHp(target.getHp());
-                gui.setMessage(currentChar.getName() + " uses skill on " + target.getName() + " for " + skillDmg + " damage!");
-
-                // Example: Player skill can stun enemy
+                // Example: skill can stun enemy
                 if (Math.random() < 0.2) { // 20% chance
                     target.setStunned(true);
                     gui.setMessage(target.getName() + " is stunned!");
                 }
-                break;
-
-            case "item":
+            }
+            case "item" -> {
                 if (!inventory.isEmpty()) {
-                    String[] options = new String[inventory.size()];
-                    for (int i = 0; i < inventory.size(); i++) {
-                        Item item = inventory.get(i);
-                        options[i] = item.getName() + " (" + item.getDescription() + ")";
-                    }
-                    int choice = gui.askItemChoice("Choose an item to use:", options);
+                    String[] options = inventory.stream().map(i -> i.getName() + " (" + i.getDescription() + ")").toArray(String[]::new);
+                    int choice = gui.askItemChoice("Choose an item:", options);
                     if (choice >= 0 && choice < inventory.size()) {
                         Item selected = inventory.remove(choice);
                         currentChar.heal(selected.getEffect());
-                        gui.setPlayerHp(currentChar.getHp());
-                        gui.setMessage(currentChar.getName() + " uses " + selected.getName() +
-                                " and heals " + selected.getEffect() + " HP!");
+                        gui.updatePartyBars();
+                        gui.setMessage(currentChar.getName() + " uses " + selected.getName() + " and heals " + selected.getEffect() + " HP!");
                     }
-                } else {
-                    gui.setMessage("No items left!");
-                }
-                break;
-
-            case "flee":
-                gui.setMessage(currentChar.getName() + " tried to flee!");
-                break;
-        }
-
-        // ===== Enemy turn =====
-        for (Enemy e : enemies) {
-            if (e.getHp() <= 0) continue;
-
-            Character enemyTarget = choosePartyMember(party);
-            if (enemyTarget != null) {
-                int dmgTaken = e.attack();
-                enemyTarget.takeDamage(dmgTaken);
-                gui.setPlayerHp(enemyTarget.getHp());
-                gui.setMessage(e.getName() + " attacks " + enemyTarget.getName() + " for " + dmgTaken + " damage!");
-
-                // Enemy skill can poison player
-                if (Math.random() < 0.2) {
-                    enemyTarget.setPoisoned(true, 3);
-                    gui.setMessage(enemyTarget.getName() + " is poisoned for 3 turns!");
-                }
+                } else gui.setMessage("No items left!");
             }
-        }
-
-        // ===== Check if wave is over =====
-        boolean allEnemiesDead = true;
-        for (Enemy e : enemies) if (e.getHp() > 0) allEnemiesDead = false;
-
-        if (allEnemiesDead) {
-            coins += enemies.length * 10;
-            gui.setMessage("Wave " + (currentWave + 1) + " cleared! Coins: " + coins);
-
-            // Shop between waves
-            currentWave++;
-            if (currentWave < 3) {
-                Shop.openShop(gui, inventory, coins);
-                enemies = createWave(currentWave);
-                gui.setEnemyHp(enemies[0].getHp());
-            } else {
-                gui.setMessage("All waves cleared! Congratulations!");
-                FileHandler.saveGame(party, "savegame.txt");
-            }
+            case "flee" -> gui.setMessage(currentChar.getName() + " tried to flee!");
         }
 
         nextCharacterTurn();
     }
 
+    private static Enemy chooseEnemy() {
+        ArrayList<Enemy> alive = new ArrayList<>();
+        for (Enemy e : enemies) if (e.getHp() > 0) alive.add(e);
+        if (alive.isEmpty()) return null;
+
+        String[] options = alive.stream().map(e -> e.getName() + " (HP: " + e.getHp() + ")").toArray(String[]::new);
+        int choice = gui.askEnemyChoice("Choose an enemy to attack:", options);
+        return alive.get(choice);
+    }
+
     private static void nextCharacterTurn() {
         currentCharacterIndex++;
-        if (currentCharacterIndex >= party.length) currentCharacterIndex = 0;
+        if (currentCharacterIndex >= party.length) {
+            currentCharacterIndex = 0;
+            enemyTurn();
+        }
         Character c = party[currentCharacterIndex];
         gui.setMessage("It's " + c.getName() + "'s turn!");
-        gui.setPlayerHp(c.getHp());
+        gui.updatePartyBars();
     }
 
-    private static Enemy chooseEnemy(Enemy[] enemies) {
-        ArrayList<Enemy> aliveEnemies = new ArrayList<>();
-        for (Enemy e : enemies) if (e.getHp() > 0) aliveEnemies.add(e);
-
-        if (aliveEnemies.isEmpty()) return null;
-
-        String[] options = new String[aliveEnemies.size()];
-        for (int i = 0; i < aliveEnemies.size(); i++) {
-            options[i] = aliveEnemies.get(i).getName() + " (HP: " + aliveEnemies.get(i).getHp() + ")";
+    private static void enemyTurn() {
+        for (Enemy e : enemies) {
+            if (e.getHp() <= 0) continue;
+            Character target = party[(int)(Math.random() * party.length)];
+            int dmg = e.attack();
+            target.takeDamage(dmg);
+            gui.updatePartyBars();
+            gui.setMessage(e.getName() + " attacks " + target.getName() + " for " + dmg + " damage!");
+            if (Math.random() < 0.2) {
+                target.setPoisoned(true, 3);
+                gui.setMessage(target.getName() + " is poisoned for 3 turns!");
+            }
         }
 
-        int choice = gui.askEnemyChoice("Choose an enemy to attack:", options);
-        return aliveEnemies.get(choice);
+        checkWaveEnd();
     }
 
-    private static Character choosePartyMember(Character[] party) {
-        for (Character c : party) if (c.getHp() > 0) return c;
-        return null;
-    }
+    private static void checkWaveEnd() {
+        boolean allDead = true;
+        for (Enemy e : enemies) if (e.getHp() > 0) allDead = false;
 
-    private static Enemy[] createWave(int waveIndex) {
-        switch (waveIndex) {
-            case 0: return new Enemy[]{ new Goblin(), new Goblin() };
-            case 1: return new Enemy[]{ new Orc(), new Goblin() };
-            case 2: return new Enemy[]{ new Orc(), new Orc() };
-            default: return new Enemy[]{};
+        if (allDead) {
+            coins += Arrays.stream(enemies).mapToInt(e -> 10).sum();
+            gui.setMessage("Wave " + (currentWave+1) + " cleared! Coins: " + coins);
+
+            currentWave++;
+            if (currentWave < 3) {
+                Shop.openShop(gui, inventory, coins);
+                enemies = createWave(currentWave);
+                gui.setEnemies(enemies);
+            } else gui.setMessage("All waves cleared! Congratulations!");
         }
     }
+
+   // ===== Wave creation method =====
+private static Enemy[] createWave(int wave) {
+    return switch (wave) {
+        case 0 -> new Enemy[]{ new Goblin("Goblin 1", 50, 10), new Goblin("Goblin 2", 50, 10) };
+        case 1 -> new Enemy[]{ new Orc("Orc 1", 80, 15), new Goblin("Goblin 3", 50, 10) };
+        default -> new Enemy[]{ new Orc("Orc 2", 80, 15), new Orc("Orc 3", 80, 15) };
+    };
+}
 }
