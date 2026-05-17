@@ -1,9 +1,0 @@
-com\mycompany\rpg\enemies\Orc.class
-com\mycompany\rpg\items\Item.class
-com\mycompany\rpg\enemies\Goblin.class
-com\mycompany\rpg\characters\Mage.class
-com\mycompany\rpg\enemies\Enemy.class
-com\mycompany\rpg\characters\Warrior.class
-com\mycompany\rpg\characters\Archer.class
-com\mycompany\rpg\characters\Character.class
-com\mycompany\rpg\exceptions\EmptyInventoryException.class
