@@ -75,9 +75,9 @@ public class MainMenuGUI extends JFrame {
         Font btnFont = new Font("Monospaced", Font.BOLD, 14);
         
         // Instantiate buttons with custom text, assets, and unique color highlights
-        newGameBtn  = createMenuButton("START NEW ADVENTURE", btnFont, "fight.png", new Color(78, 186, 116));
-        loadGameBtn = createMenuButton("LOAD PREVIOUS SAVE", btnFont, "reviveScroll.png", COLOR_MP_BLUE);
-        exitBtn     = createMenuButton("EXIT GAME", btnFont, "run.png", COLOR_HP_RED);
+        newGameBtn  = createMenuButton("START NEW ADVENTURE", btnFont, "newGame.png", new Color(78, 186, 116));
+        loadGameBtn = createMenuButton("LOAD PREVIOUS SAVE", btnFont, "loadGame.png", COLOR_MP_BLUE);
+        exitBtn     = createMenuButton("EXIT GAME", btnFont, "exit.png", COLOR_HP_RED);
 
         buttonContainer.add(Box.createVerticalGlue());
         buttonContainer.add(newGameBtn);
