@@ -1,6 +1,11 @@
 package com.mycompany.rpg.characters;
 
-public abstract class Character {
+import java.io.Serializable;
+
+public abstract class Character implements Serializable {
+    // Unique version control ID handle ensuring save-file cross-compatibility
+    private static final long serialVersionUID = 1L;
+
     private String name;
     private int hp;
     private int maxHp;
@@ -44,6 +49,19 @@ public abstract class Character {
     public void restoreMp(int amount) {
         mp += amount;
         if (mp > maxMp) mp = maxMp;
+    }
+    
+    // Force specific asset values immediately (Crucial for game loading states)
+    public void setHp(int hp) {
+        this.hp = hp;
+        if (this.hp > this.maxHp) this.hp = this.maxHp;
+        if (this.hp < 0) this.hp = 0;
+    }
+
+    public void setMp(int mp) {
+        this.mp = mp;
+        if (this.mp > this.maxMp) this.mp = this.maxMp;
+        if (this.mp < 0) this.mp = 0;
     }
 
     // Status effect methods

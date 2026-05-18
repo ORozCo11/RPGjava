@@ -6,10 +6,11 @@ public abstract class Enemy {
     private int maxHp;
     private int attackPower;
 
-    // Status effects
+    // Status & Buff effects
     private boolean stunned = false;
     private boolean poisoned = false;
     private int poisonTurns = 0;
+    private boolean attackBuffed = false; // Tracks if enemy used a Buff action
 
     public Enemy(String name, int hp, int attackPower) {
         this.name = name;
@@ -21,11 +22,15 @@ public abstract class Enemy {
     public String getName() { return name; }
     public int getHp() { return hp; }
     public int getMaxHp() { return maxHp; }
-    public int getAttackPower() { return attackPower; }
+    
+    // Dynamically returns higher attack power if they are currently buffed
+    public int getAttackPower() { 
+        return attackBuffed ? (int)(attackPower * 1.5) : attackPower; 
+    }
 
     public void takeDamage(int dmg) { hp -= dmg; if (hp < 0) hp = 0; }
+    public void heal(int amount) { hp += amount; if (hp > maxHp) hp = maxHp; }
 
-    // Status effect methods
     public boolean isStunned() { return stunned; }
     public void setStunned(boolean stunned) { this.stunned = stunned; }
 
@@ -36,6 +41,9 @@ public abstract class Enemy {
         this.poisonTurns = turns; 
     }
 
-    // Abstract attack method
+    public boolean isAttackBuffed() { return attackBuffed; }
+    public void setAttackBuffed(boolean buffed) { this.attackBuffed = buffed; }
+
+    // Abstract methods required by assignment rules
     public abstract int attack();
 }
